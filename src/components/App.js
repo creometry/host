@@ -84,7 +84,15 @@ class App extends Component {
       );
     }
   }
-
+  harvest = () => {
+    this.setState({ loading: true });
+    this.state.tokenFarm.methods
+      .harvest()
+      .send({ from: this.state.account })
+      .on('transactionHash', (hash) => {
+        this.setState({ loading: false });
+      });
+  };
   constructor(props) {
     super(props);
     this.state = {
@@ -111,6 +119,7 @@ class App extends Component {
           account={this.state.account}
           coins={this.state.TheRewardFromLastHarverst}
           loadData={this.loadDataFunc}
+          harvest={this.harvest}
         />
       );
     }

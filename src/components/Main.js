@@ -20,6 +20,16 @@ class Main extends Component {
                 >
                   Give me my current unharvested rewards
                 </button>
+                <button
+                  type="submit"
+                  className="btn btn-link btn-block btn-sm"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    this.props.harvest();
+                  }}
+                >
+                  HARVEST NOW
+                </button>
               </th>
               <th scope="col">Your Current Creo Balance</th>
             </tr>

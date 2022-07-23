@@ -8038,7 +8038,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.8",
-  "updatedAt": "2022-07-22T13:47:42.315Z",
+  "updatedAt": "2022-07-23T10:20:46.790Z",
   "devdoc": {
     "details": "A library for working with mutable byte buffers in Solidity. Byte buffers are mutable and expandable, and provide a variety of primitives for writing to them. At any time you can fetch a bytes object containing the current contents of the buffer. The bytes object should not be stored between operations, as it may change due to resizing of the buffer.",
     "kind": "dev",

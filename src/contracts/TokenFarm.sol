@@ -14,7 +14,6 @@ contract TokenFarm is ChainlinkClient, ConfirmedOwner {
     bytes32 private jobId;
     uint256 private fee;
     uint256 public volume;
-    address public requester;
     event RequestVolume(bytes32 indexed requestId, uint256 volume);
 
     address[] public providers;
@@ -67,6 +66,9 @@ contract TokenFarm is ChainlinkClient, ConfirmedOwner {
     }
 
     function harvest() public returns (bytes32 requestId) {
+        //1) check if it's a valid address (msg.sender in isProviding.)
+
+        //2)launch the request.
         Chainlink.Request memory req = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
         string memory url="https://afternoon-headland-32456.herokuapp.com/wallets/";
 
@@ -97,8 +99,9 @@ contract TokenFarm is ChainlinkClient, ConfirmedOwner {
     }
     function fulfill(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId) {
         emit RequestVolume(_requestId, _volume);
-        requester=requesters[_requestId];
-        volume = _volume;
+        // transferring the amount that came from the server.
+        creoToken.transfer(requesters[_requestId], _volume);
+        
     }
     /**
     * Allow withdraw of Link tokens from the contract
