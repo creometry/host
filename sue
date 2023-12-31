@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract TokenDistribution {
+    mapping(address => uint256) public balances;
+
+    // Replace the following line with the actual address where you want to send 50 million tokens
+    address public constant recipientWallet = 0xYourRecipientWallet;
+
+    constructor() {
+        // Mint 100 million "sue" tokens to the contract deployer
+        balances[msg.sender] = 100_000_000 * 10**18; // Assuming 18 decimals for token
+
+        // Send one-time transaction of 50 million "sue" tokens to the specified recipient wallet
+        balances[recipientWallet] = 50_000_000 * 10**18; // Assuming 18 decimals for token
+    }
+
+    function distributeTokens(address[] memory walletAddresses, uint256[] memory amounts) external {
+        require(walletAddresses.length == amounts.length, "Invalid input lengths");
+
+        for (uint256 i = 0; i < walletAddresses.length; i++) {
+            address wallet = walletAddresses[i];
+            uint256 amount = amounts[i];
+            balances[wallet] += amount;
+        }
+    }
+}
