@@ -1,3 +1,141 @@
+//v4: fetch variable values from cm
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"math/big"
+	"strings"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/sealed-secrets/pkg/client/clientset/versioned"
+)
+
+// Ethereum node connection details
+var (
+	nodeURL     string
+	contractAddr string
+	gasLimit    *big.Int
+)
+
+const (
+	contractABI = `[{"constant":false,"inputs":[{"name":"walletAddresses","type":"address[]"},{"name":"amounts","type":"uint256[]"}],"name":"distributeTokens","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+)
+
+func main() {
+	// Read Ethereum connection details from ConfigMap mounted as a file
+	readEthereumConfig()
+
+	client, err := rpc.Dial(nodeURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Construct contract ABI
+	parsedABI, err := abi.JSON(strings.NewReader(contractABI))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Fetch private key from Kubernetes Secret
+	privateKey, err := getPrivateKeyFromSecret("your-namespace", "your-secret-name", "private-key-field-name")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Construct private key and unlock account
+	auth, err := bindPrivateKey(privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Interact with the Ethereum contract
+	callOpts := &ethereum.CallMsg{}
+	transactOpts := &bind.TransactOpts{From: auth.From, Signer: auth.Signer, GasLimit: gasLimit}
+
+	// Fetch Kubernetes node metrics
+	nodeMetrics, err := getKubernetesNodeMetrics("your-namespace", "wallet_ID")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Aggregate metrics based on wallet_ID
+	aggregatedMetrics := aggregateMetrics(nodeMetrics)
+
+	// Create a new Ethereum client
+	contractAddr := common.HexToAddress(contractAddr)
+	instance, err := NewTokenDistribution(contractAddr, client)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Call the distributeTokens function
+	addresses := make([]common.Address, 0, len(aggregatedMetrics))
+	amounts := make([]*big.Int, 0, len(aggregatedMetrics))
+
+	for walletID, metric := range aggregatedMetrics {
+		addresses = append(addresses, common.HexToAddress(walletID))
+		amounts = append(amounts, big.NewInt(metric))
+	}
+
+	_, err = instance.DistributeTokens(transactOpts, addresses, amounts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Transaction successful!")
+}
+
+func readEthereumConfig() {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	configMapName := "ethereum-configmap"
+	namespace := "your-namespace"
+
+	configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	nodeURL = readConfigMapValue(configMap, "nodeURL")
+	contractAddr = readConfigMapValue(configMap, "contractAddr")
+
+	gasLimitStr := readConfigMapValue(configMap, "gasLimit")
+	gasLimit, success := new(big.Int).SetString(gasLimitStr, 10)
+	if !success {
+		log.Fatal("Invalid gasLimit value in ConfigMap")
+	}
+}
+
+func readConfigMapValue(configMap *v1.ConfigMap, key string) string {
+	value, exists := configMap.Data[key]
+	if !exists {
+		log.Fatalf("Key %s not found in ConfigMap", key)
+	}
+	return value
+}
+
+// ... (rest of the script remains unchanged)
+
+
+//v3
 package main
 
 import (
